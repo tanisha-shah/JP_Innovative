@@ -1,246 +1,238 @@
-// File: src/service/AuthService.java
-// Package: service
-// Description: Handles Authentication logic for the Smart Campus Placement System.
-
+// Package name - this file belongs to the service package
 package service;
 
-import model.Student;
-import model.Company;
-import model.Admin;
-
+// We need ArrayList to store all users
 import java.util.ArrayList;
 
-/**
- * AuthService class.
- * Handles all authentication-related operations:
- * - Student registration
- * - Login for Student, Company, and Admin
- *
- * Uses simple ArrayList storage (no database).
- * Performs basic email and password validation.
- */
+// We need these classes from model package
+import model.Admin;
+import model.Company;
+import model.Student;
+
+// AuthService class - handles login and registration for all users
+// Students, Companies and Admins all use this class to login or register
 public class AuthService {
 
-    // ─── Storage ──────────────────────────────────────────────
+    // These ArrayLists work as our database to store all users
+    private ArrayList<Student> studentList;
+    private ArrayList<Company> companyList;
+    private ArrayList<Admin>   adminList;
 
-    // In-memory list to store registered students
-    private ArrayList<Student> students;
-
-    // In-memory list to store registered companies
-    private ArrayList<Company> companies;
-
-    // In-memory list to store admins (pre-loaded with a default admin)
-    private ArrayList<Admin> admins;
-
-    // ─── Constructor ──────────────────────────────────────────
-
-    /**
-     * Constructor.
-     * Initializes all storage lists.
-     * Pre-loads a default admin account for system access.
-     */
+    // --- Constructor ---
+    // This runs when we create AuthService object
+    // We also add some default sample data here for testing
     public AuthService() {
-        this.students  = new ArrayList<>();
-        this.companies = new ArrayList<>();
-        this.admins    = new ArrayList<>();
+        studentList = new ArrayList<Student>();
+        companyList = new ArrayList<Company>();
+        adminList   = new ArrayList<Admin>();
 
-        // Pre-load a default admin account
-        // Admin can log in with: admin@campus.com / admin123
-        admins.add(new Admin("ADM001", "Admin", "admin@campus.com", "admin123"));
+        // Adding a default Admin so we can login right away
+        Admin defaultAdmin = new Admin(1, "Admin", "admin@campus.com", "admin123");
+        adminList.add(defaultAdmin);
+
+        // Adding sample students for testing
+        Student s1 = new Student(1, "Rahul Sharma", "rahul@gmail.com", "rahul123", "CSE", 8.5);
+        s1.addSkill("Java");
+        s1.addSkill("Python");
+        studentList.add(s1);
+
+        Student s2 = new Student(2, "Priya Patel", "priya@gmail.com", "priya123", "IT", 7.8);
+        s2.addSkill("SQL");
+        s2.addSkill("HTML");
+        studentList.add(s2);
+
+        // Adding sample companies for testing
+        Company c1 = new Company(1, "Google",  "google@gmail.com",       "google123");
+        Company c2 = new Company(2, "TCS",     "tcs@tcs.com",            "tcs123");
+        Company c3 = new Company(3, "Infosys", "infosys@infosys.com",    "infosys123");
+        companyList.add(c1);
+        companyList.add(c2);
+        companyList.add(c3);
     }
 
-    // ─── Registration ─────────────────────────────────────────
+    // =========================================================
+    //                  REGISTER METHODS
+    // =========================================================
 
-    /**
-     * Registers a new Student into the system.
-     *
-     * Steps:
-     * 1. Validate that name, email, and password are not empty.
-     * 2. Check if the email is already registered.
-     * 3. If valid, create a new Student and add to the list.
-     *
-     * @param id       Unique student ID
-     * @param name     Full name of the student
-     * @param email    Email address (must be unique)
-     * @param password Login password (must not be empty)
-     * @param branch   Academic branch/department
-     * @param cgpa     CGPA of the student
-     * @param skills   Comma-separated skills string (e.g., "Java,SQL,Python")
-     * @return "SUCCESS" if registered, or an error message string if failed
-     */
-    public String registerStudent(String id, String name, String email,
-                                  String password, String branch,
-                                  double cgpa, java.util.List<String> skills) {
+    // --- Register a new Student ---
+    // Adds a student object directly into the student list
+    public void registerStudent(Student s) {
 
-        // ── Step 1: Validate inputs ──
-        if (name == null || name.trim().isEmpty()) {
-            return "ERROR: Name cannot be empty.";
-        }
-        if (email == null || email.trim().isEmpty()) {
-            return "ERROR: Email cannot be empty.";
-        }
-        if (!email.contains("@") || !email.contains(".")) {
-            return "ERROR: Invalid email format.";
-        }
-        if (password == null || password.trim().isEmpty()) {
-            return "ERROR: Password cannot be empty.";
-        }
-        if (password.length() < 4) {
-            return "ERROR: Password must be at least 4 characters long.";
-        }
-        if (branch == null || branch.trim().isEmpty()) {
-            return "ERROR: Branch cannot be empty.";
-        }
-        if (cgpa < 0.0 || cgpa > 10.0) {
-            return "ERROR: CGPA must be between 0.0 and 10.0.";
-        }
-
-        // ── Step 2: Check for duplicate email ──
-        for (Student s : students) {
-            if (s.getEmail().equalsIgnoreCase(email.trim())) {
-                return "ERROR: Email is already registered. Please login.";
+        // Check if email is already taken by another student
+        for (int i = 0; i < studentList.size(); i++) {
+            if (studentList.get(i).getEmail().equalsIgnoreCase(s.getEmail())) {
+                System.out.println("❌ Registration failed! Email already exists: " + s.getEmail());
+                return; // stop here, don't add duplicate
             }
         }
 
-        // ── Step 3: Create and store the new student ──
-        Student newStudent = new Student(
-                id,
-                name.trim(),
-                email.trim().toLowerCase(),
-                password,
-                branch.trim(),
-                cgpa,
-                skills
-        );
-        students.add(newStudent);
-
-        return "SUCCESS"; // Registration successful
+        // Email is unique so we can safely add the student
+        studentList.add(s);
+        System.out.println("✅ Student registered successfully! Welcome, " + s.getName());
     }
 
-    // ─── Login ────────────────────────────────────────────────
+    // --- Register a new Company ---
+    // Adds a company object directly into the company list
+    public void registerCompany(Company c) {
 
-    /**
-     * Attempts to log in a Student using email and password.
-     *
-     * @param email    Email address entered by the user
-     * @param password Password entered by the user
-     * @return The matched Student object if login is successful, null otherwise
-     */
+        // Check if email is already taken by another company
+        for (int i = 0; i < companyList.size(); i++) {
+            if (companyList.get(i).getEmail().equalsIgnoreCase(c.getEmail())) {
+                System.out.println("❌ Registration failed! Email already exists: " + c.getEmail());
+                return; // stop here, don't add duplicate
+            }
+        }
+
+        // Email is unique so we can safely add the company
+        companyList.add(c);
+        System.out.println("✅ Company registered successfully! Welcome, " + c.getName());
+    }
+
+    // --- Register a new Admin ---
+    // Adds an admin object directly into the admin list
+    public void registerAdmin(Admin a) {
+
+        // Check if email is already taken by another admin
+        for (int i = 0; i < adminList.size(); i++) {
+            if (adminList.get(i).getEmail().equalsIgnoreCase(a.getEmail())) {
+                System.out.println("❌ Registration failed! Email already exists: " + a.getEmail());
+                return; // stop here, don't add duplicate
+            }
+        }
+
+        // Email is unique so we can safely add the admin
+        adminList.add(a);
+        System.out.println("✅ Admin registered successfully! Welcome, " + a.getName());
+    }
+
+    // =========================================================
+    //                    LOGIN METHODS
+    // =========================================================
+
+    // --- Login a Student ---
+    // Checks email and password against the student list
+    // Returns the Student object if credentials match
+    // Returns null if not found or wrong password
     public Student loginStudent(String email, String password) {
 
-        // Basic null/empty check
-        if (email == null || email.trim().isEmpty() ||
-            password == null || password.trim().isEmpty()) {
-            return null;
-        }
+        // Loop through all students one by one
+        for (int i = 0; i < studentList.size(); i++) {
+            Student s = studentList.get(i);
 
-        // Search for a matching student by email and password
-        for (Student s : students) {
-            if (s.getEmail().equalsIgnoreCase(email.trim()) &&
-                s.getPassword().equals(password)) {
-                return s; // Login successful — return the student object
+            // Step 1 - Check if email matches
+            if (s.getEmail().equalsIgnoreCase(email)) {
+
+                // Step 2 - Email matched, now check password
+                if (s.getPassword().equals(password)) {
+                    System.out.println("✅ Login successful! Welcome, " + s.getName());
+                    return s; // return the matched student object
+                } else {
+                    // Email was correct but password is wrong
+                    System.out.println("❌ Invalid credentials! Wrong password.");
+                    return null;
+                }
             }
         }
 
-        return null; // No match found — login failed
+        // If we reach here, no student had that email
+        System.out.println("❌ Invalid credentials! Email not found.");
+        return null;
     }
 
-    /**
-     * Attempts to log in a Company using email and password.
-     *
-     * @param email    Email address entered by the company
-     * @param password Password entered by the company
-     * @return The matched Company object if login is successful, null otherwise
-     */
+    // --- Login a Company ---
+    // Checks email and password against the company list
+    // Returns the Company object if credentials match
+    // Returns null if not found or wrong password
     public Company loginCompany(String email, String password) {
 
-        // Basic null/empty check
-        if (email == null || email.trim().isEmpty() ||
-            password == null || password.trim().isEmpty()) {
-            return null;
-        }
+        // Loop through all companies one by one
+        for (int i = 0; i < companyList.size(); i++) {
+            Company c = companyList.get(i);
 
-        // Search for a matching company by email and password
-        for (Company c : companies) {
-            if (c.getEmail().equalsIgnoreCase(email.trim()) &&
-                c.getPassword().equals(password)) {
-                return c; // Login successful — return the company object
+            // Step 1 - Check if email matches
+            if (c.getEmail().equalsIgnoreCase(email)) {
+
+                // Step 2 - Email matched, now check password
+                if (c.getPassword().equals(password)) {
+                    System.out.println("✅ Login successful! Welcome, " + c.getName());
+                    return c; // return the matched company object
+                } else {
+                    // Email was correct but password is wrong
+                    System.out.println("❌ Invalid credentials! Wrong password.");
+                    return null;
+                }
             }
         }
 
-        return null; // No match found — login failed
+        // If we reach here, no company had that email
+        System.out.println("❌ Invalid credentials! Email not found.");
+        return null;
     }
 
-    /**
-     * Attempts to log in an Admin using email and password.
-     *
-     * @param email    Email address entered by the admin
-     * @param password Password entered by the admin
-     * @return The matched Admin object if login is successful, null otherwise
-     */
+    // --- Login an Admin ---
+    // Checks email and password against the admin list
+    // Returns the Admin object if credentials match
+    // Returns null if not found or wrong password
     public Admin loginAdmin(String email, String password) {
 
-        // Basic null/empty check
-        if (email == null || email.trim().isEmpty() ||
-            password == null || password.trim().isEmpty()) {
-            return null;
-        }
+        // Loop through all admins one by one
+        for (int i = 0; i < adminList.size(); i++) {
+            Admin a = adminList.get(i);
 
-        // Search for a matching admin by email and password
-        for (Admin a : admins) {
-            if (a.getEmail().equalsIgnoreCase(email.trim()) &&
-                a.getPassword().equals(password)) {
-                return a; // Login successful — return the admin object
+            // Step 1 - Check if email matches
+            if (a.getEmail().equalsIgnoreCase(email)) {
+
+                // Step 2 - Email matched, now check password
+                if (a.getPassword().equals(password)) {
+                    System.out.println("✅ Login successful! Welcome, " + a.getName());
+                    return a; // return the matched admin object
+                } else {
+                    // Email was correct but password is wrong
+                    System.out.println("❌ Invalid credentials! Wrong password.");
+                    return null;
+                }
             }
         }
 
-        return null; // No match found — login failed
+        // If we reach here, no admin had that email
+        System.out.println("❌ Invalid credentials! Email not found.");
+        return null;
     }
 
-    // ─── Helper Methods ───────────────────────────────────────
+    // =========================================================
+    //                   GETTER METHODS
+    // =========================================================
 
-    /**
-     * Registers a new Company into the system.
-     * Used internally or by admin to add companies.
-     *
-     * @param company Fully initialized Company object to register
-     * @return "SUCCESS" if registered, or an error message if failed
-     */
-    public String registerCompany(Company company) {
-
-        // Basic null check
-        if (company == null) {
-            return "ERROR: Company data is invalid.";
-        }
-
-        // Check for duplicate email
-        for (Company c : companies) {
-            if (c.getEmail().equalsIgnoreCase(company.getEmail())) {
-                return "ERROR: Company email is already registered.";
-            }
-        }
-
-        companies.add(company);
-        return "SUCCESS";
-    }
-
-    /**
-     * Returns the full list of registered students.
-     * Useful for admin operations.
-     *
-     * @return ArrayList of all registered students
-     */
+    // --- Get all students ---
+    // Returns the full student list
+    // Useful for Admin to see all registered students
     public ArrayList<Student> getAllStudents() {
-        return students;
+        return studentList;
     }
 
-    /**
-     * Returns the full list of registered companies.
-     * Useful for admin operations.
-     *
-     * @return ArrayList of all registered companies
-     */
+    // --- Get all companies ---
+    // Returns the full company list
+    // Useful for Admin to see all registered companies
     public ArrayList<Company> getAllCompanies() {
-        return companies;
+        return companyList;
+    }
+
+    // --- Get all admins ---
+    // Returns the full admin list
+    public ArrayList<Admin> getAllAdmins() {
+        return adminList;
+    }
+
+    // --- Get next student ID ---
+    // Returns a new unique ID for the next student
+    // We just use the current list size + 1
+    public int getNextStudentId() {
+        return studentList.size() + 1;
+    }
+
+    // --- Get next company ID ---
+    // Returns a new unique ID for the next company
+    public int getNextCompanyId() {
+        return companyList.size() + 1;
     }
 }

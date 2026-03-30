@@ -1,226 +1,184 @@
-// File: src/service/ApplicationService.java
-// Package: service
-// Description: Handles all Application related operations in the Smart Campus Placement System.
-
+// Package name - this file belongs to the service package
 package service;
 
-import model.Application;
-
+// We need ArrayList to store all applications
 import java.util.ArrayList;
 
-/**
- * ApplicationService class.
- * Handles all operations related to student job applications:
- * - Applying for a placement drive
- * - Retrieving applications by student
- * - Retrieving applications by drive (for company view)
- * - Updating application status
- *
- * Uses simple ArrayList storage (no database).
- * Performs basic input validation before processing applications.
- */
+// We need these classes from model package
+import model.Application;
+import model.Drive;
+import model.Student;
+
+// ApplicationService class - handles all logic related to applications
+// like applying for a drive and viewing application status
 public class ApplicationService {
 
-    // ─── Storage ──────────────────────────────────────────────
+    // This ArrayList works as our database to store all applications
+    private ArrayList<Application> applicationList;
 
-    // In-memory list to store all student applications
-    private ArrayList<Application> applications;
+    // This counter helps us give unique ID to each new application
+    private int idCounter;
 
-    // ─── Constructor ──────────────────────────────────────────
-
-    /**
-     * Constructor.
-     * Initializes the applications storage list.
-     */
+    // --- Constructor ---
     public ApplicationService() {
-        this.applications = new ArrayList<>();
+        applicationList = new ArrayList<Application>();
+        idCounter = 1; // first application will get ID = 1
     }
 
-    // ─── Core Methods ─────────────────────────────────────────
+    // --- Apply for a drive ---
+    // This method lets a student apply for a placement drive
+    // It checks if student is eligible before applying
+    // Returns true if application is successful
+    // Returns false if not eligible or already applied
+    public boolean applyForDrive(Student student, Drive drive) {
 
-    /**
-     * Applies a student for a specific placement drive.
-     *
-     * Steps:
-     * 1. Validate that studentId and driveId are not null or empty.
-     * 2. Check if the student has already applied for the same drive.
-     * 3. Generate a unique application ID.
-     * 4. Create a new Application object with default status "Applied".
-     * 5. Add the application to the list.
-     *
-     * @param studentId ID of the student applying (e.g., STU001)
-     * @param driveId   ID of the drive being applied to (e.g., DRV001)
-     * @return "SUCCESS" if application is successful, or an error message if failed
-     */
-    public String applyForDrive(String studentId, String driveId) {
+        // Check 1 - Has student already applied for this drive?
+        for (int i = 0; i < applicationList.size(); i++) {
+            Application a = applicationList.get(i);
 
-        // ── Step 1: Validate studentId ──
-        if (studentId == null || studentId.trim().isEmpty()) {
-            return "ERROR: Student ID cannot be empty.";
-        }
-
-        // ── Step 2: Validate driveId ──
-        if (driveId == null || driveId.trim().isEmpty()) {
-            return "ERROR: Drive ID cannot be empty.";
-        }
-
-        // ── Step 3: Check for duplicate application ──
-        // A student cannot apply for the same drive more than once
-        for (Application app : applications) {
-            if (app.getStudentId().equalsIgnoreCase(studentId.trim()) &&
-                app.getDriveId().equalsIgnoreCase(driveId.trim())) {
-                return "ERROR: You have already applied for this drive.";
+            // If same student and same drive found, they already applied
+            if (a.getStudentId() == student.getId() && a.getDriveId() == drive.getId()) {
+                System.out.println("⚠️  You have already applied for this drive!");
+                return false;
             }
         }
 
-        // ── Step 4: Generate a unique application ID ──
-        String applicationId = generateApplicationId();
-
-        // ── Step 5: Create a new Application with default status "Applied" ──
-        Application newApplication = new Application(
-                applicationId,
-                studentId.trim(),
-                driveId.trim()
-                // Status is auto-set to "Applied" by the convenience constructor
-        );
-
-        // ── Step 6: Add application to the list ──
-        applications.add(newApplication);
-
-        return "SUCCESS"; // Application submitted successfully
-    }
-
-    /**
-     * Retrieves all applications submitted by a specific student.
-     *
-     * @param studentId ID of the student whose applications are to be fetched
-     * @return ArrayList of Application objects belonging to the student,
-     *         or an empty list if no applications found
-     */
-    public ArrayList<Application> getApplicationsByStudent(String studentId) {
-
-        // Result list to hold matching applications
-        ArrayList<Application> studentApplications = new ArrayList<>();
-
-        // Basic null/empty check — return empty list if invalid input
-        if (studentId == null || studentId.trim().isEmpty()) {
-            return studentApplications;
+        // Check 2 - Is student's branch eligible for this drive?
+        if (!drive.isBranchEligible(student.getBranch())) {
+            System.out.println("❌ Sorry! Your branch (" + student.getBranch() + ") is not eligible for this drive.");
+            return false;
         }
 
-        // Search for all applications matching the given studentId
-        for (Application app : applications) {
-            if (app.getStudentId().equalsIgnoreCase(studentId.trim())) {
-                studentApplications.add(app); // Match found — add to result list
+        // Check 3 - Does student meet the minimum CGPA requirement?
+        if (student.getCgpa() < drive.getMinCGPA()) {
+            System.out.println("❌ Sorry! Your CGPA (" + student.getCgpa() + ") is below the minimum required CGPA (" + drive.getMinCGPA() + ").");
+            return false;
+        }
+
+        // All checks passed - create new application and add to list
+        Application newApplication = new Application(idCounter, student.getId(), drive.getId());
+        idCounter++; // increase counter so next application gets different ID
+        applicationList.add(newApplication);
+
+        System.out.println("✅ Application submitted successfully!");
+        System.out.println("   Application ID : " + newApplication.getApplicationId());
+        System.out.println("   Company        : " + drive.getCompanyName());
+        System.out.println("   Role           : " + drive.getRole());
+        System.out.println("   Status         : " + newApplication.getStatus());
+
+        return true;
+    }
+
+    // --- View applications by student ---
+    // This method shows all applications made by a specific student
+    // Student can see which drives they applied for and their status
+    public void viewApplicationsByStudent(int studentId) {
+
+        // This list will hold all applications of that student
+        ArrayList<Application> studentApplications = new ArrayList<Application>();
+
+        // Loop through all applications and find ones that belong to this student
+        for (int i = 0; i < applicationList.size(); i++) {
+            if (applicationList.get(i).getStudentId() == studentId) {
+                studentApplications.add(applicationList.get(i));
             }
         }
 
-        return studentApplications; // Return all matching applications
-    }
-
-    // ─── Helper Methods ───────────────────────────────────────
-
-    /**
-     * Retrieves all applications submitted for a specific drive.
-     * Useful for company dashboard to view applicants.
-     *
-     * @param driveId ID of the drive whose applicants are to be fetched
-     * @return ArrayList of Application objects for the given drive,
-     *         or an empty list if no applications found
-     */
-    public ArrayList<Application> getApplicationsByDrive(String driveId) {
-
-        // Result list to hold matching applications
-        ArrayList<Application> driveApplications = new ArrayList<>();
-
-        // Basic null/empty check — return empty list if invalid input
-        if (driveId == null || driveId.trim().isEmpty()) {
-            return driveApplications;
+        // Check if student has applied anywhere at all
+        if (studentApplications.size() == 0) {
+            System.out.println("You have not applied for any drives yet.");
+            return;
         }
 
-        // Search for all applications matching the given driveId
-        for (Application app : applications) {
-            if (app.getDriveId().equalsIgnoreCase(driveId.trim())) {
-                driveApplications.add(app); // Match found — add to result list
+        System.out.println("\n===== YOUR APPLICATIONS =====");
+
+        // Print each application one by one
+        for (int i = 0; i < studentApplications.size(); i++) {
+            studentApplications.get(i).displayInfo();
+        }
+    }
+
+    // --- Get applications by student ID ---
+    // Returns ArrayList of all applications made by a student
+    // Used by other classes when they need the list
+    public ArrayList<Application> getApplicationsByStudent(int studentId) {
+
+        ArrayList<Application> studentApplications = new ArrayList<Application>();
+
+        for (int i = 0; i < applicationList.size(); i++) {
+            if (applicationList.get(i).getStudentId() == studentId) {
+                studentApplications.add(applicationList.get(i));
             }
         }
 
-        return driveApplications; // Return all matching applications
+        return studentApplications;
     }
 
-    /**
-     * Updates the status of a specific application.
-     * Used by company or admin to shortlist or reject applicants.
-     *
-     * Valid status values: "Applied", "Shortlisted", "Rejected"
-     *
-     * @param applicationId ID of the application to update
-     * @param newStatus     New status to set
-     * @return "SUCCESS" if updated, or an error message if failed
-     */
-    public String updateApplicationStatus(String applicationId, String newStatus) {
+    // --- Get applications by drive ID ---
+    // Returns ArrayList of all applications for a specific drive
+    // Used by Company and Admin to see who applied
+    public ArrayList<Application> getApplicationsByDrive(int driveId) {
 
-        // Validate applicationId
-        if (applicationId == null || applicationId.trim().isEmpty()) {
-            return "ERROR: Application ID cannot be empty.";
-        }
+        ArrayList<Application> driveApplications = new ArrayList<Application>();
 
-        // Validate newStatus
-        if (newStatus == null || newStatus.trim().isEmpty()) {
-            return "ERROR: Status cannot be empty.";
-        }
-
-        // Search for the application and update its status
-        for (Application app : applications) {
-            if (app.getApplicationId().equalsIgnoreCase(applicationId.trim())) {
-
-                // Use the validated setStatus() from Application model
-                app.setStatus(newStatus.trim());
-                return "SUCCESS"; // Status updated successfully
+        for (int i = 0; i < applicationList.size(); i++) {
+            if (applicationList.get(i).getDriveId() == driveId) {
+                driveApplications.add(applicationList.get(i));
             }
         }
 
-        return "ERROR: Application with ID '" + applicationId + "' not found.";
+        return driveApplications;
     }
 
-    /**
-     * Retrieves all applications stored in the system.
-     * Useful for admin management and overview.
-     *
-     * @return ArrayList of all Application objects
-     */
+    // --- Update application status ---
+    // This method is used by Admin to update status of an application
+    // Status can be changed to "Selected" or "Rejected"
+    public void updateStatus(int applicationId, String newStatus) {
+
+        // Loop through all applications to find the one with matching ID
+        for (int i = 0; i < applicationList.size(); i++) {
+            if (applicationList.get(i).getApplicationId() == applicationId) {
+
+                // Found the application - update its status
+                applicationList.get(i).setStatus(newStatus);
+                System.out.println("✅ Application ID " + applicationId + " status updated to: " + newStatus);
+                return;
+            }
+        }
+
+        // If we reach here, application was not found
+        System.out.println("❌ Application not found with ID: " + applicationId);
+    }
+
+    // --- Get all applications ---
+    // Returns full list of all applications
+    // Used by Admin to see everything
     public ArrayList<Application> getAllApplications() {
-        return applications;
+        return applicationList;
     }
 
-    /**
-     * Checks if a specific student has already applied for a specific drive.
-     * Useful for disabling the Apply button in the GUI.
-     *
-     * @param studentId ID of the student
-     * @param driveId   ID of the drive
-     * @return true if already applied, false otherwise
-     */
-    public boolean hasAlreadyApplied(String studentId, String driveId) {
+    // --- Display all applications ---
+    // Prints every application in the system
+    // Useful for Admin panel
+    public void displayAllApplications() {
 
-        // Search for an existing application matching both IDs
-        for (Application app : applications) {
-            if (app.getStudentId().equalsIgnoreCase(studentId) &&
-                app.getDriveId().equalsIgnoreCase(driveId)) {
-                return true; // Duplicate application found
-            }
+        // Check if there are any applications at all
+        if (applicationList.size() == 0) {
+            System.out.println("No applications found.");
+            return;
         }
 
-        return false; // No existing application found
+        System.out.println("\n===== ALL APPLICATIONS =====");
+
+        // Loop and print each application
+        for (int i = 0; i < applicationList.size(); i++) {
+            applicationList.get(i).displayInfo();
+        }
     }
 
-    /**
-     * Generates a new unique Application ID based on current application count.
-     * Format: APP001, APP002, APP003, ...
-     *
-     * @return A new unique application ID string
-     */
-    private String generateApplicationId() {
-        int next = applications.size() + 1;      // Next number in sequence
-        return String.format("APP%03d", next);   // Format as APP001, APP002, etc.
+    // --- Get total number of applications ---
+    // Simple method to count total applications in system
+    public int getTotalApplications() {
+        return applicationList.size();
     }
 }

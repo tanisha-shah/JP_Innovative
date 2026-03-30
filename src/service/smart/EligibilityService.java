@@ -1,165 +1,109 @@
-// File: src/service/smart/EligibilityService.java
-// Package: service.smart
-// Description: Handles eligibility checking logic for students and drives.
-
+// Package name - this file belongs to the service.smart package
+// We put it in a sub-package called "smart" to keep smart features separate
 package service.smart;
 
-import model.Student;
+// We need Student and Drive classes from model package
 import model.Drive;
+import model.Student;
 
-/**
- * EligibilityService class.
- * Smart service that checks whether a student is eligible
- * for a specific campus placement drive.
- *
- * Eligibility is determined by two criteria:
- * 1. Student's CGPA must meet the drive's minimum CGPA requirement.
- * 2. Student's branch must be in the drive's list of eligible branches.
- *
- * Used by GUI pages like EligibleDrivesPage and ApplyDrivePage.
- */
+// EligibilityService class - checks if a student is eligible for a drive
+// This is a SMART FEATURE of our placement system
+// It checks CGPA and Branch before allowing a student to apply
 public class EligibilityService {
 
-    // ─── Core Method ──────────────────────────────────────────
+    // --- Main eligibility check method ---
+    // This method checks if a student is eligible for a specific drive
+    // It checks two things:
+    //   1. Is student's branch in the eligible branches list?
+    //   2. Is student's CGPA equal to or more than minimum required CGPA?
+    // Returns true if student is eligible
+    // Returns false if student is NOT eligible
+    public boolean isEligible(Student s, Drive d) {
 
-    /**
-     * Checks whether a given student is eligible for a given drive.
-     *
-     * Eligibility criteria:
-     * - Student's CGPA >= Drive's minimum CGPA requirement
-     * - Student's branch is present in the drive's eligible branches list
-     *
-     * @param student The Student object to check eligibility for
-     * @param drive   The Drive object to check eligibility against
-     * @return true if the student meets all eligibility criteria, false otherwise
-     */
-    public boolean isEligible(Student student, Drive drive) {
+        System.out.println("\n--- Checking Eligibility ---");
+        System.out.println("Student  : " + s.getName());
+        System.out.println("Branch   : " + s.getBranch());
+        System.out.println("CGPA     : " + s.getCgpa());
+        System.out.println("Drive    : " + d.getCompanyName() + " - " + d.getRole());
+        System.out.println("Min CGPA : " + d.getMinCGPA());
+        System.out.println("----------------------------");
 
-        // ── Step 1: Null safety check ──
-        // If either object is null, eligibility cannot be determined
-        if (student == null || drive == null) {
-            System.out.println("[EligibilityService] WARNING: " +
-                               "Student or Drive object is null.");
+        // --- Check 1: Branch Eligibility ---
+        // We call isBranchEligible() from Drive class
+        // It checks if student's branch is in the allowed branches list
+        if (!d.isBranchEligible(s.getBranch())) {
+            // Branch is NOT in the eligible list
+            System.out.println("❌ Branch Check   : FAILED");
+            System.out.println("   Your branch (" + s.getBranch() + ") is not eligible for this drive.");
+            System.out.println("   Eligible branches are: " + d.getEligibleBranches());
+            return false; // student is not eligible, stop checking further
+        }
+
+        // Branch check passed
+        System.out.println("✅ Branch Check   : PASSED (" + s.getBranch() + " is eligible)");
+
+        // --- Check 2: CGPA Eligibility ---
+        // We compare student's CGPA with the minimum CGPA required for the drive
+        if (s.getCgpa() < d.getMinCGPA()) {
+            // Student's CGPA is less than required minimum
+            System.out.println("❌ CGPA Check     : FAILED");
+            System.out.println("   Your CGPA (" + s.getCgpa() + ") is below the minimum required CGPA (" + d.getMinCGPA() + ").");
+            return false; // student is not eligible
+        }
+
+        // CGPA check passed
+        System.out.println("✅ CGPA Check     : PASSED (" + s.getCgpa() + " >= " + d.getMinCGPA() + ")");
+
+        // Both checks passed - student is eligible!
+        System.out.println("🎉 Result         : You are ELIGIBLE for this drive!");
+        System.out.println("----------------------------");
+        return true;
+    }
+
+    // --- Check only branch ---
+    // Sometimes we just want to check branch separately
+    // Returns true if branch is eligible, false if not
+    public boolean isBranchEligible(Student s, Drive d) {
+
+        if (d.isBranchEligible(s.getBranch())) {
+            System.out.println("✅ Branch (" + s.getBranch() + ") is eligible for this drive.");
+            return true;
+        } else {
+            System.out.println("❌ Branch (" + s.getBranch() + ") is NOT eligible for this drive.");
             return false;
         }
-
-        // ── Step 2: Check CGPA eligibility ──
-        // Student's CGPA must be greater than or equal to drive's minimum CGPA
-        if (!isCGPAEligible(student, drive)) {
-            return false; // CGPA does not meet the requirement
-        }
-
-        // ── Step 3: Check branch eligibility ──
-        // Student's branch must be in the drive's list of eligible branches
-        if (!isBranchEligible(student, drive)) {
-            return false; // Branch is not in the eligible list
-        }
-
-        // ── All checks passed ──
-        return true; // Student is fully eligible for this drive
     }
 
-    // ─── Helper Methods ───────────────────────────────────────
+    // --- Check only CGPA ---
+    // Sometimes we just want to check CGPA separately
+    // Returns true if CGPA is enough, false if not
+    public boolean isCgpaEligible(Student s, Drive d) {
 
-    /**
-     * Checks if the student's CGPA meets the drive's minimum CGPA requirement.
-     *
-     * @param student The Student object
-     * @param drive   The Drive object
-     * @return true if student's CGPA >= drive's minCGPA, false otherwise
-     */
-    public boolean isCGPAEligible(Student student, Drive drive) {
-
-        // Compare student CGPA against drive's minimum required CGPA
-        if (student.getCgpa() >= drive.getMinCGPA()) {
-            return true; // CGPA requirement satisfied
-        }
-
-        // Log reason for ineligibility (helpful for debugging)
-        System.out.println("[EligibilityService] CGPA check failed for student: "
-                + student.getName()
-                + " | Student CGPA: " + student.getCgpa()
-                + " | Required: "     + drive.getMinCGPA());
-
-        return false; // CGPA too low
-    }
-
-    /**
-     * Checks if the student's branch is in the drive's eligible branches list.
-     * Comparison is case-insensitive (e.g., "cse" matches "CSE").
-     *
-     * @param student The Student object
-     * @param drive   The Drive object
-     * @return true if student's branch is in the eligible branches list,
-     *         false otherwise
-     */
-    public boolean isBranchEligible(Student student, Drive drive) {
-
-        // Safety check — if branch list is null or empty, no one is eligible
-        if (drive.getEligibleBranches() == null ||
-            drive.getEligibleBranches().isEmpty()) {
-            System.out.println("[EligibilityService] WARNING: " +
-                               "Drive has no eligible branches defined.");
+        if (s.getCgpa() >= d.getMinCGPA()) {
+            System.out.println("✅ CGPA (" + s.getCgpa() + ") meets the minimum requirement (" + d.getMinCGPA() + ").");
+            return true;
+        } else {
+            System.out.println("❌ CGPA (" + s.getCgpa() + ") does NOT meet the minimum requirement (" + d.getMinCGPA() + ").");
             return false;
         }
-
-        // Loop through all eligible branches in the drive
-        for (String branch : drive.getEligibleBranches()) {
-
-            // Case-insensitive comparison to avoid mismatches like "CSE" vs "cse"
-            if (branch.equalsIgnoreCase(student.getBranch())) {
-                return true; // Branch match found
-            }
-        }
-
-        // Log reason for ineligibility (helpful for debugging)
-        System.out.println("[EligibilityService] Branch check failed for student: "
-                + student.getName()
-                + " | Student Branch: " + student.getBranch()
-                + " | Eligible Branches: " + drive.getEligibleBranches());
-
-        return false; // Branch not in eligible list
     }
 
-    /**
-     * Returns a human-readable eligibility summary for a student and drive.
-     * Useful for displaying detailed feedback in the GUI.
-     *
-     * Example output:
-     * "CGPA: PASS | Branch: PASS | Overall: ELIGIBLE"
-     * "CGPA: FAIL (Required 7.5, You have 6.2) | Branch: PASS | Overall: NOT ELIGIBLE"
-     *
-     * @param student The Student object
-     * @param drive   The Drive object
-     * @return A formatted eligibility summary string
-     */
-    public String getEligibilitySummary(Student student, Drive drive) {
+    // --- Get eligibility reason ---
+    // This method tells the student exactly WHY they are or are not eligible
+    // Returns a simple String message explaining the result
+    public String getEligibilityReason(Student s, Drive d) {
 
-        // Null check
-        if (student == null || drive == null) {
-            return "ERROR: Invalid student or drive data.";
+        // Check branch first
+        if (!d.isBranchEligible(s.getBranch())) {
+            return "Not eligible: Your branch (" + s.getBranch() + ") is not allowed for this drive.";
         }
 
-        // ── CGPA status ──
-        boolean cgpaPass   = isCGPAEligible(student, drive);
-        String  cgpaStatus = cgpaPass
-                ? "CGPA : PASS (" + student.getCgpa() + " >= " + drive.getMinCGPA() + ")"
-                : "CGPA : FAIL  (Required " + drive.getMinCGPA()
-                  + ", You have " + student.getCgpa() + ")";
+        // Check CGPA next
+        if (s.getCgpa() < d.getMinCGPA()) {
+            return "Not eligible: Your CGPA (" + s.getCgpa() + ") is less than required CGPA (" + d.getMinCGPA() + ").";
+        }
 
-        // ── Branch status ──
-        boolean branchPass   = isBranchEligible(student, drive);
-        String  branchStatus = branchPass
-                ? "Branch : PASS (" + student.getBranch() + " is eligible)"
-                : "Branch : FAIL  (" + student.getBranch()
-                  + " not in " + drive.getEligibleBranches() + ")";
-
-        // ── Overall eligibility ──
-        String overall = (cgpaPass && branchPass)
-                ? "Overall : ELIGIBLE"
-                : "Overall : NOT ELIGIBLE";
-
-        // Combine all parts into a readable summary
-        return cgpaStatus + "\n" + branchStatus + "\n" + overall;
+        // Both passed
+        return "Eligible: Your branch and CGPA both meet the requirements!";
     }
 }

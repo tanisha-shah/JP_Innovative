@@ -1,260 +1,220 @@
-// File: src/service/smart/NotificationService.java
-// Package: service.smart
-// Description: Handles all Notification related operations in the Smart Campus Placement System.
-
+// Package name - this file belongs to the service.smart package
 package service.smart;
 
+// We need ArrayList to store all notifications
+import java.util.ArrayList;
+
+// We need Notification class from model package
 import model.Notification;
 
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * NotificationService class.
- * Smart service that handles all notification operations:
- * - Adding a new notification for a user
- * - Retrieving all notifications for a specific user
- *
- * Notifications can be sent to any user type (Student, Company, Admin)
- * by using their respective user ID.
- *
- * Uses simple ArrayList storage (no database).
- * Used by GUI page: NotificationsPage.java
- */
+// NotificationService class - this is a SMART FEATURE
+// It handles all notifications in the system
+// When a new drive is posted or application status changes
+// a notification is sent to the student
 public class NotificationService {
 
-    // ─── Storage ──────────────────────────────────────────────
+    // This ArrayList works as our database to store all notifications
+    private ArrayList<Notification> notificationList;
 
-    // In-memory list to store all notifications across all users
-    private ArrayList<Notification> notifications;
+    // This counter helps us give unique ID to each new notification
+    private int idCounter;
 
-    // Counter to help generate unique notification IDs
-    private int notificationCounter;
-
-    // ─── Constructor ──────────────────────────────────────────
-
-    /**
-     * Constructor.
-     * Initializes the notifications storage list and ID counter.
-     * Pre-loads sample notifications for testing and demonstration.
-     */
+    // --- Constructor ---
     public NotificationService() {
-        this.notifications      = new ArrayList<>();
-        this.notificationCounter = 0;
-
-        // ── Pre-load sample notifications for demonstration ──
-        addNotification("STU001",
-                "Welcome to Smart Campus Placement System! " +
-                "Start exploring available drives.");
-
-        addNotification("STU001",
-                "New drive posted by Google for Software Engineer role. " +
-                "Check your eligibility now!");
-
-        addNotification("STU001",
-                "Your application APP001 status has been updated to: Shortlisted!");
+        notificationList = new ArrayList<Notification>();
+        idCounter = 1; // first notification will get ID = 1
     }
 
-    // ─── Core Methods ─────────────────────────────────────────
+    // =========================================================
+    //                    ADD NOTIFICATION
+    // =========================================================
 
-    /**
-     * Adds a new notification for a specific user.
-     *
-     * Steps:
-     * 1. Validate that userId and message are not null or empty.
-     * 2. Generate a unique notification ID.
-     * 3. Create a new Notification object.
-     * 4. Add it to the notifications list.
-     *
-     * @param userId  ID of the user to send the notification to
-     *                (e.g., STU001, COM001, ADM001)
-     * @param message The notification message content
-     * @return "SUCCESS" if added successfully,
-     *         or an error message string if validation fails
-     */
-    public String addNotification(String userId, String message) {
+    // --- Add a new notification ---
+    // This method creates a new notification and adds it to the list
+    // userId  = the student ID who should receive this notification
+    // message = the text message to show to the student
+    public void addNotification(int userId, String message) {
 
-        // ── Step 1: Validate userId ──
-        if (userId == null || userId.trim().isEmpty()) {
-            return "ERROR: User ID cannot be empty.";
-        }
+        // Create a new Notification object with unique ID
+        Notification newNotification = new Notification(idCounter, userId, message);
+        idCounter++; // increase counter so next notification gets different ID
 
-        // ── Step 2: Validate message ──
-        if (message == null || message.trim().isEmpty()) {
-            return "ERROR: Notification message cannot be empty.";
-        }
+        // Add notification to our list
+        notificationList.add(newNotification);
 
-        // ── Step 3: Generate a unique notification ID ──
-        String notificationId = generateNotificationId();
-
-        // ── Step 4: Create a new Notification object ──
-        Notification notification = new Notification(
-                notificationId,
-                userId.trim(),
-                message.trim()
-        );
-
-        // ── Step 5: Add to the notifications list ──
-        notifications.add(notification);
-
-        // Log confirmation
-        System.out.println("[NotificationService] Notification added"
-                + " | ID: "      + notificationId
-                + " | User: "    + userId
-                + " | Message: " + message);
-
-        return "SUCCESS"; // Notification added successfully
+        // Print confirmation that notification was added
+        System.out.println("🔔 Notification sent to User ID " + userId + ": " + message);
     }
 
-    /**
-     * Retrieves all notifications for a specific user.
-     *
-     * Steps:
-     * 1. Validate that userId is not null or empty.
-     * 2. Loop through all notifications.
-     * 3. Collect and return only those matching the given userId.
-     *
-     * @param userId ID of the user whose notifications are to be fetched
-     * @return List of Notification objects belonging to the user,
-     *         or an empty list if none found or input is invalid
-     */
-    public List<Notification> getNotifications(String userId) {
+    // =========================================================
+    //                   GET NOTIFICATIONS
+    // =========================================================
 
-        // Result list to hold matching notifications
-        List<Notification> userNotifications = new ArrayList<>();
+    // --- Get all notifications for a specific user ---
+    // This method returns all notifications that belong to a student
+    // userId = the student ID whose notifications we want
+    // Returns ArrayList of Notification objects for that student
+    public ArrayList<Notification> getNotifications(int userId) {
 
-        // ── Step 1: Validate userId ──
-        if (userId == null || userId.trim().isEmpty()) {
-            System.out.println("[NotificationService] WARNING: " +
-                               "User ID is null or empty. Returning empty list.");
-            return userNotifications;
-        }
+        // This list will store all notifications for this student
+        ArrayList<Notification> userNotifications = new ArrayList<Notification>();
 
-        // ── Step 2: Loop through all notifications and match by userId ──
-        for (Notification notification : notifications) {
-
-            // Skip null entries for safety
-            if (notification == null) {
-                continue;
-            }
-
-            // Case-insensitive match on userId
-            if (notification.getUserId().equalsIgnoreCase(userId.trim())) {
-                userNotifications.add(notification); // Match found — add to result
+        // Loop through all notifications
+        // Find ones that belong to this specific student
+        for (int i = 0; i < notificationList.size(); i++) {
+            if (notificationList.get(i).getUserId() == userId) {
+                userNotifications.add(notificationList.get(i));
             }
         }
 
-        // ── Step 3: Log result summary ──
-        System.out.println("[NotificationService] Fetched notifications"
-                + " | User: "         + userId
-                + " | Count: "        + userNotifications.size());
-
-        return userNotifications; // Return all matching notifications
+        return userNotifications;
     }
 
-    // ─── Helper Methods ───────────────────────────────────────
+    // =========================================================
+    //                  DISPLAY NOTIFICATIONS
+    // =========================================================
 
-    /**
-     * Returns the total count of notifications for a specific user.
-     * Useful for displaying a notification badge count in the GUI.
-     *
-     * @param userId ID of the user
-     * @return Number of notifications for that user
-     */
-    public int getNotificationCount(String userId) {
+    // --- Display all notifications for a specific user ---
+    // This method prints all notifications of a student on screen
+    // Called when student wants to view their notifications
+    public void displayNotifications(int userId) {
+
+        // Get all notifications for this student
+        ArrayList<Notification> userNotifications = getNotifications(userId);
+
+        System.out.println("\n=============================");
+        System.out.println("      YOUR NOTIFICATIONS     ");
+        System.out.println("=============================");
+
+        // Check if student has any notifications at all
+        if (userNotifications.size() == 0) {
+            System.out.println("📭 No notifications found for you.");
+            System.out.println("   You will be notified when:");
+            System.out.println("   - A new drive is posted");
+            System.out.println("   - Your application status changes");
+            System.out.println("=============================");
+            return;
+        }
+
+        // Print total count of notifications
+        System.out.println("📬 You have " + userNotifications.size() + " notification(s)");
+        System.out.println("-----------------------------");
+
+        // Print each notification one by one with a number
+        for (int i = 0; i < userNotifications.size(); i++) {
+            Notification n = userNotifications.get(i);
+            System.out.println((i + 1) + ". 🔔 " + n.getMessage());
+            System.out.println("   Notification ID : " + n.getId());
+            System.out.println();
+        }
+
+        System.out.println("=============================");
+    }
+
+    // =========================================================
+    //               HELPER / UTILITY METHODS
+    // =========================================================
+
+    // --- Notify all students about a new drive ---
+    // This method sends a notification to a list of student IDs
+    // Used when a new drive is posted and we want to notify students
+    public void notifyStudentsAboutDrive(ArrayList<Integer> studentIds,
+                                         String companyName, String role) {
+
+        // Build the notification message
+        String message = "New drive posted! " + companyName + " is hiring for " + role + ". Apply now!";
+
+        // Loop through all student IDs and send each one a notification
+        for (int i = 0; i < studentIds.size(); i++) {
+            addNotification(studentIds.get(i), message);
+        }
+
+        System.out.println("✅ Drive notification sent to " + studentIds.size() + " student(s).");
+    }
+
+    // --- Notify a student about application status change ---
+    // This method sends a notification when admin updates application status
+    // studentId = which student to notify
+    // companyName = which company's drive
+    // status = new status like "Selected" or "Rejected"
+    public void notifyApplicationStatus(int studentId, String companyName, String status) {
+
+        // Build the message based on status
+        String message = "";
+
+        if (status.equalsIgnoreCase("Selected")) {
+            // Good news - student got selected
+            message = "🎉 Congratulations! You have been SELECTED for " + companyName + " drive!";
+        } else if (status.equalsIgnoreCase("Rejected")) {
+            // Bad news - student got rejected
+            message = "😔 Sorry! You have been REJECTED for " + companyName + " drive. Keep trying!";
+        } else {
+            // Some other status update
+            message = "Your application status for " + companyName + " has been updated to: " + status;
+        }
+
+        // Send the notification to the student
+        addNotification(studentId, message);
+    }
+
+    // --- Get all notifications in the system ---
+    // Returns the complete notification list
+    // Used by Admin to see all notifications sent
+    public ArrayList<Notification> getAllNotifications() {
+        return notificationList;
+    }
+
+    // --- Display all notifications in system ---
+    // Admin can use this to see every notification sent
+    public void displayAllNotifications() {
+
+        System.out.println("\n===== ALL NOTIFICATIONS IN SYSTEM =====");
+
+        // Check if there are any notifications at all
+        if (notificationList.size() == 0) {
+            System.out.println("No notifications found in system.");
+            System.out.println("=======================================");
+            return;
+        }
+
+        System.out.println("Total Notifications : " + notificationList.size());
+        System.out.println("---------------------------------------");
+
+        // Print every notification in the list
+        for (int i = 0; i < notificationList.size(); i++) {
+            Notification n = notificationList.get(i);
+            System.out.println((i + 1) + ". ID: " + n.getId()
+                    + " | User ID: " + n.getUserId()
+                    + " | Message: " + n.getMessage());
+        }
+
+        System.out.println("=======================================");
+    }
+
+    // --- Count notifications for a user ---
+    // Returns how many notifications a student has
+    public int countNotifications(int userId) {
         return getNotifications(userId).size();
     }
 
-    /**
-     * Checks if a specific user has any notifications.
-     * Useful for conditionally showing the notification bell icon in the GUI.
-     *
-     * @param userId ID of the user
-     * @return true if the user has at least one notification, false otherwise
-     */
-    public boolean hasNotifications(String userId) {
-        return !getNotifications(userId).isEmpty();
-    }
+    // --- Clear all notifications for a user ---
+    // Removes all notifications of a specific student
+    // Like clearing your inbox
+    public void clearNotifications(int userId) {
 
-    /**
-     * Deletes all notifications for a specific user.
-     * Useful for a "Clear All" button on the NotificationsPage.
-     *
-     * @param userId ID of the user whose notifications are to be cleared
-     * @return "SUCCESS" if cleared, or an error message if input is invalid
-     */
-    public String clearNotifications(String userId) {
+        // We will build a new list without this student's notifications
+        ArrayList<Notification> remainingNotifications = new ArrayList<Notification>();
 
-        // Validate userId
-        if (userId == null || userId.trim().isEmpty()) {
-            return "ERROR: User ID cannot be empty.";
-        }
-
-        // Remove all notifications matching the given userId
-        notifications.removeIf(n ->
-                n != null &&
-                n.getUserId().equalsIgnoreCase(userId.trim())
-        );
-
-        System.out.println("[NotificationService] Cleared all notifications" +
-                           " for User: " + userId);
-
-        return "SUCCESS"; // All notifications cleared
-    }
-
-    /**
-     * Sends a notification to multiple users at once.
-     * Useful for broadcasting drive announcements to all students.
-     *
-     * @param userIds List of user IDs to send the notification to
-     * @param message The notification message content
-     * @return Number of notifications successfully sent
-     */
-    public int broadcastNotification(List<String> userIds, String message) {
-
-        // Track how many notifications were sent successfully
-        int successCount = 0;
-
-        // Null check on userIds list
-        if (userIds == null || userIds.isEmpty()) {
-            System.out.println("[NotificationService] WARNING: " +
-                               "No user IDs provided for broadcast.");
-            return successCount;
-        }
-
-        // Send notification to each user in the list
-        for (String userId : userIds) {
-            String result = addNotification(userId, message);
-            if ("SUCCESS".equals(result)) {
-                successCount++; // Count successful sends
+        // Keep all notifications that do NOT belong to this student
+        for (int i = 0; i < notificationList.size(); i++) {
+            if (notificationList.get(i).getUserId() != userId) {
+                remainingNotifications.add(notificationList.get(i));
             }
         }
 
-        System.out.println("[NotificationService] Broadcast complete"
-                + " | Sent to: " + successCount + " users"
-                + " | Message: " + message);
+        // Replace old list with new filtered list
+        notificationList = remainingNotifications;
 
-        return successCount; // Return total successfully sent
-    }
-
-    /**
-     * Returns all notifications in the system.
-     * Useful for admin overview of all system notifications.
-     *
-     * @return ArrayList of all Notification objects
-     */
-    public ArrayList<Notification> getAllNotifications() {
-        return notifications;
-    }
-
-    /**
-     * Generates a unique Notification ID.
-     * Format: NOT001, NOT002, NOT003, ...
-     *
-     * @return A new unique notification ID string
-     */
-    private String generateNotificationId() {
-        notificationCounter++;                              // Increment counter
-        return String.format("NOT%03d", notificationCounter); // Format as NOT001, etc.
+        System.out.println("✅ All notifications cleared for User ID: " + userId);
     }
 }

@@ -1,255 +1,210 @@
-// File: src/service/smart/SkillGapService.java
-// Package: service.smart
-// Description: Handles skill gap analysis between a student and a drive requirement.
-
+// Package name - this file belongs to the service.smart package
 package service.smart;
 
-import model.Student;
-import model.Drive;
-
+// We need ArrayList to store missing skills
 import java.util.ArrayList;
-import java.util.List;
 
-/**
- * SkillGapService class.
- * Smart service that analyzes the gap between a student's current skills
- * and the skills required for a specific placement drive.
- *
- * The skill gap is the list of skills that the drive requires
- * but the student does not currently possess.
- *
- * Used by GUI pages like SkillGapPage and EligibleDrivesPage.
- */
+// We need Student and Drive classes from model package
+import model.Drive;
+import model.Student;
+
+// SkillGapService class - this is a SMART FEATURE
+// It compares student's skills with drive's required skills
+// and tells the student which skills they are missing
+// This helps students know what to learn before applying
 public class SkillGapService {
 
-    // ─── Core Method ──────────────────────────────────────────
+    // --- Main skill gap method ---
+    // This method compares student skills vs drive required skills
+    // It finds which required skills the student does NOT have
+    // Returns an ArrayList of missing skills
+    // If ArrayList is empty, student has all required skills
+    public ArrayList<String> getSkillGap(Student s, Drive d) {
 
-    /**
-     * Calculates the skill gap between a student and a drive.
-     *
-     * The skill gap is defined as:
-     * Skills required by the drive - Skills already possessed by the student
-     *
-     * Steps:
-     * 1. Validate that student and drive objects are not null.
-     * 2. Retrieve required skills from the drive.
-     * 3. Retrieve current skills from the student.
-     * 4. Compare both lists (case-insensitive).
-     * 5. Return skills the student is missing.
-     *
-     * @param student The Student object to analyze
-     * @param drive   The Drive object containing required skills
-     * @return List of skill names the student is missing,
-     *         or an empty list if no skill gap exists
-     */
-    public List<String> getSkillGap(Student student, Drive drive) {
+        // This list will store all the skills student is missing
+        ArrayList<String> missingSkills = new ArrayList<String>();
 
-        // Result list to hold all missing skills
-        List<String> missingSkills = new ArrayList<>();
+        // Get the list of skills required for this drive
+        ArrayList<String> requiredSkills = d.getRequiredSkills();
 
-        // ── Step 1: Null safety check ──
-        if (student == null) {
-            System.out.println("[SkillGapService] WARNING: " +
-                               "Student object is null. Returning empty list.");
-            return missingSkills;
+        // Get the list of skills the student currently has
+        ArrayList<String> studentSkills = s.getSkills();
+
+        System.out.println("\n--- Skill Gap Analysis ---");
+        System.out.println("Student          : " + s.getName());
+        System.out.println("Drive            : " + d.getCompanyName() + " - " + d.getRole());
+
+        // Print student's current skills
+        System.out.print("Your Skills      : ");
+        if (studentSkills.size() == 0) {
+            System.out.println("No skills added yet");
+        } else {
+            for (int i = 0; i < studentSkills.size(); i++) {
+                System.out.print(studentSkills.get(i));
+                // Print comma after each skill except the last one
+                if (i != studentSkills.size() - 1) {
+                    System.out.print(", ");
+                }
+            }
+            System.out.println(); // move to next line
         }
 
-        if (drive == null) {
-            System.out.println("[SkillGapService] WARNING: " +
-                               "Drive object is null. Returning empty list.");
-            return missingSkills;
+        // Print required skills for this drive
+        System.out.print("Required Skills  : ");
+        if (requiredSkills.size() == 0) {
+            System.out.println("No specific skills required");
+        } else {
+            for (int i = 0; i < requiredSkills.size(); i++) {
+                System.out.print(requiredSkills.get(i));
+                // Print comma after each skill except the last one
+                if (i != requiredSkills.size() - 1) {
+                    System.out.print(", ");
+                }
+            }
+            System.out.println(); // move to next line
         }
 
-        // ── Step 2: Get required skills from drive ──
-        List<String> requiredSkills = drive.getRequiredSkills();
+        System.out.println("--------------------------");
 
-        // If no skills required by drive, no gap exists
-        if (requiredSkills == null || requiredSkills.isEmpty()) {
-            System.out.println("[SkillGapService] INFO: " +
-                               "Drive has no required skills defined. No gap.");
-            return missingSkills;
-        }
+        // --- Core Logic ---
+        // Loop through every required skill of the drive
+        // Check if student has that skill or not
+        for (int i = 0; i < requiredSkills.size(); i++) {
+            String requiredSkill = requiredSkills.get(i);
 
-        // ── Step 3: Get current skills from student ──
-        List<String> studentSkills = student.getSkills();
-
-        // If student has no skills at all, all required skills are missing
-        if (studentSkills == null || studentSkills.isEmpty()) {
-            System.out.println("[SkillGapService] INFO: " +
-                               "Student has no skills listed. All required skills are missing.");
-            missingSkills.addAll(requiredSkills); // All required skills are gaps
-            return missingSkills;
-        }
-
-        // ── Step 4: Compare skills — case-insensitive matching ──
-        for (String requiredSkill : requiredSkills) {
-
-            // Check if student already has this required skill
-            if (!studentHasSkill(studentSkills, requiredSkill)) {
-                missingSkills.add(requiredSkill); // Student is missing this skill
+            // Use hasSkill() from Student class to check
+            if (!s.hasSkill(requiredSkill)) {
+                // Student does NOT have this skill - add to missing list
+                missingSkills.add(requiredSkill);
             }
         }
 
-        // ── Step 5: Log summary ──
-        System.out.println("[SkillGapService] Student: " + student.getName()
-                + " | Drive: "          + drive.getRole()
-                + " | Required Skills: " + requiredSkills.size()
-                + " | Missing Skills: "  + missingSkills.size());
+        // --- Display Results ---
+        if (missingSkills.size() == 0) {
+            // Student has all required skills - great news!
+            System.out.println("🎉 Great News! You have ALL the required skills for this drive!");
+            System.out.println("   You are fully prepared to apply!");
 
-        return missingSkills; // Return all missing skills
+        } else {
+            // Student is missing some skills - show them what to learn
+            System.out.println("⚠️  You are missing " + missingSkills.size() + " skill(s) for this drive:");
+            System.out.println();
+
+            // Print each missing skill with a number
+            for (int i = 0; i < missingSkills.size(); i++) {
+                System.out.println("   " + (i + 1) + ". ❌ " + missingSkills.get(i));
+            }
+
+            System.out.println();
+            System.out.println("💡 Tip: Learn these skills to improve your chances!");
+        }
+
+        System.out.println("--------------------------");
+
+        // Return the missing skills list so other classes can use it
+        return missingSkills;
     }
 
-    // ─── Helper Methods ───────────────────────────────────────
+    // --- Check if student has all required skills ---
+    // Simple method that returns true if no skills are missing
+    // Returns false if even one skill is missing
+    public boolean hasAllSkills(Student s, Drive d) {
 
-    /**
-     * Checks if a student's skill list contains a specific skill.
-     * Comparison is case-insensitive (e.g., "java" matches "Java").
-     *
-     * @param studentSkills  List of skills the student currently has
-     * @param requiredSkill  The skill to check for
-     * @return true if the student has the skill, false otherwise
-     */
-    private boolean studentHasSkill(List<String> studentSkills, String requiredSkill) {
+        ArrayList<String> requiredSkills = d.getRequiredSkills();
 
-        // Loop through student's skills and compare case-insensitively
-        for (String skill : studentSkills) {
-            if (skill.equalsIgnoreCase(requiredSkill)) {
-                return true; // Skill found in student's list
+        // Loop through all required skills
+        for (int i = 0; i < requiredSkills.size(); i++) {
+
+            // If even one skill is missing return false immediately
+            if (!s.hasSkill(requiredSkills.get(i))) {
+                return false;
             }
         }
 
-        return false; // Skill not found
+        // All skills found - return true
+        return true;
     }
 
-    /**
-     * Returns the count of missing skills for a student and drive.
-     * Useful for displaying a skill gap score or badge in the GUI.
-     *
-     * @param student The Student object
-     * @param drive   The Drive object
-     * @return Number of skills the student is missing
-     */
-    public int getSkillGapCount(Student student, Drive drive) {
-        return getSkillGap(student, drive).size();
-    }
+    // --- Count how many skills are missing ---
+    // Returns a number showing how many skills student still needs to learn
+    public int getMissingSkillCount(Student s, Drive d) {
 
-    /**
-     * Checks if a student has zero skill gap for a drive.
-     * Useful for highlighting "fully skilled" drives in the GUI.
-     *
-     * @param student The Student object
-     * @param drive   The Drive object
-     * @return true if student has all required skills, false otherwise
-     */
-    public boolean hasNoSkillGap(Student student, Drive drive) {
-        return getSkillGap(student, drive).isEmpty();
-    }
+        // We can reuse getSkillGap() and just return its size
+        ArrayList<String> missingSkills = new ArrayList<String>();
+        ArrayList<String> requiredSkills = d.getRequiredSkills();
 
-    /**
-     * Returns a list of skills the student already has that match
-     * the drive's required skills.
-     * Useful for showing "matched skills" alongside the gap.
-     *
-     * @param student The Student object
-     * @param drive   The Drive object
-     * @return List of skills the student already has that the drive requires
-     */
-    public List<String> getMatchedSkills(Student student, Drive drive) {
-
-        // Result list to hold all matched skills
-        List<String> matchedSkills = new ArrayList<>();
-
-        // Null safety check
-        if (student == null || drive == null) {
-            return matchedSkills;
-        }
-
-        List<String> requiredSkills = drive.getRequiredSkills();
-        List<String> studentSkills  = student.getSkills();
-
-        // Safety check on lists
-        if (requiredSkills == null || requiredSkills.isEmpty() ||
-            studentSkills  == null || studentSkills.isEmpty()) {
-            return matchedSkills;
-        }
-
-        // Find skills that appear in both lists
-        for (String requiredSkill : requiredSkills) {
-            if (studentHasSkill(studentSkills, requiredSkill)) {
-                matchedSkills.add(requiredSkill); // Skill matched
+        // Loop and count missing skills quietly (no printing)
+        for (int i = 0; i < requiredSkills.size(); i++) {
+            if (!s.hasSkill(requiredSkills.get(i))) {
+                missingSkills.add(requiredSkills.get(i));
             }
         }
 
-        return matchedSkills;
+        return missingSkills.size();
     }
 
-    /**
-     * Returns a human-readable skill gap summary for a student and drive.
-     * Useful for displaying detailed feedback on the SkillGapPage.
-     *
-     * Example output:
-     * "Skill Gap Analysis for Alice — Software Engineer at Google:
-     *  Matched Skills (2): Java, Problem Solving
-     *  Missing Skills (1): Data Structures
-     *  Tip: Work on the missing skills to improve your chances!"
-     *
-     * @param student The Student object
-     * @param drive   The Drive object
-     * @return Formatted string showing matched and missing skills
-     */
-    public String getSkillGapSummary(Student student, Drive drive) {
+    // --- Get skill match percentage ---
+    // This tells the student what percentage of skills they already have
+    // For example: 2 out of 4 skills = 50% match
+    public int getSkillMatchPercentage(Student s, Drive d) {
 
-        // Null check
-        if (student == null || drive == null) {
-            return "ERROR: Invalid student or drive data.";
+        ArrayList<String> requiredSkills = d.getRequiredSkills();
+
+        // If drive has no required skills then 100% match
+        if (requiredSkills.size() == 0) {
+            return 100;
         }
 
-        // Get matched and missing skill lists
-        List<String> missingSkills = getSkillGap(student, drive);
-        List<String> matchedSkills = getMatchedSkills(student, drive);
+        // Count how many required skills the student already has
+        int matchedSkills = 0;
 
-        // Build summary string
-        StringBuilder summary = new StringBuilder();
-
-        summary.append("Skill Gap Analysis for ")
-               .append(student.getName())
-               .append(" — ")
-               .append(drive.getRole())
-               .append(" at ")
-               .append(drive.getCompanyName())
-               .append(":\n\n");
-
-        // ── Matched Skills ──
-        summary.append("Matched Skills (")
-               .append(matchedSkills.size())
-               .append("): ");
-        if (matchedSkills.isEmpty()) {
-            summary.append("None");
-        } else {
-            summary.append(String.join(", ", matchedSkills));
+        for (int i = 0; i < requiredSkills.size(); i++) {
+            if (s.hasSkill(requiredSkills.get(i))) {
+                matchedSkills++; // student has this skill
+            }
         }
 
-        summary.append("\n");
+        // Calculate percentage using simple formula
+        // multiply by 100 to get percentage
+        int percentage = (matchedSkills * 100) / requiredSkills.size();
+        return percentage;
+    }
 
-        // ── Missing Skills ──
-        summary.append("Missing Skills (")
-               .append(missingSkills.size())
-               .append("): ");
-        if (missingSkills.isEmpty()) {
-            summary.append("None — You have all required skills!");
-        } else {
-            summary.append(String.join(", ", missingSkills));
+    // --- Display full skill gap report ---
+    // This method shows a complete and detailed report
+    // of student's skills vs drive requirements
+    public void displaySkillReport(Student s, Drive d) {
+
+        System.out.println("\n=============================");
+        System.out.println("      SKILL GAP REPORT       ");
+        System.out.println("=============================");
+        System.out.println("Student : " + s.getName());
+        System.out.println("Drive   : " + d.getCompanyName() + " - " + d.getRole());
+        System.out.println("-----------------------------");
+
+        ArrayList<String> requiredSkills = d.getRequiredSkills();
+
+        // Loop through all required skills
+        // Show tick if student has it, cross if student doesn't
+        for (int i = 0; i < requiredSkills.size(); i++) {
+            String skill = requiredSkills.get(i);
+
+            if (s.hasSkill(skill)) {
+                // Student has this skill
+                System.out.println("  ✅ " + skill + " - You have this skill!");
+            } else {
+                // Student does not have this skill
+                System.out.println("  ❌ " + skill + " - MISSING (learn this)");
+            }
         }
 
-        summary.append("\n\n");
+        System.out.println("-----------------------------");
 
-        // ── Tip message ──
-        if (missingSkills.isEmpty()) {
-            summary.append("Great job! You meet all skill requirements for this drive.");
-        } else {
-            summary.append("Tip: Work on the missing skills to improve your chances!");
-        }
-
-        return summary.toString().trim();
+        // Show skill match percentage at the bottom
+        int percentage = getSkillMatchPercentage(s, d);
+        System.out.println("Skill Match      : " + percentage + "%");
+        System.out.println("Missing Skills   : " + getMissingSkillCount(s, d));
+        System.out.println("Matched Skills   : " + (requiredSkills.size() - getMissingSkillCount(s, d)));
+        System.out.println("=============================");
     }
 }

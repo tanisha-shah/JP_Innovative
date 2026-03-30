@@ -1,187 +1,248 @@
-// File: src/service/smart/RecommendationService.java
-// Package: service.smart
-// Description: Handles smart drive recommendation logic for students.
-
+// Package name - this file belongs to the service.smart package
 package service.smart;
 
-import model.Student;
-import model.Drive;
-
+// We need ArrayList to store and return list of drives
 import java.util.ArrayList;
-import java.util.List;
 
-/**
- * RecommendationService class.
- * Smart service that recommends eligible placement drives to a student.
- *
- * Uses EligibilityService internally to filter drives based on:
- * - Student's CGPA vs Drive's minimum CGPA requirement
- * - Student's branch vs Drive's eligible branches list
- *
- * Used by GUI pages like EligibleDrivesPage and StudentDashboard.
- */
+// We need Student and Drive classes from model package
+import model.Drive;
+import model.Student;
+
+// RecommendationService class - this is a SMART FEATURE
+// It recommends eligible drives to a student
+// based on their branch, CGPA and skills
+// This helps students quickly find drives they can apply for
 public class RecommendationService {
 
-    // ─── Dependency ───────────────────────────────────────────
+    // --- Main recommendation method ---
+    // This method takes a student and a full list of all drives
+    // It checks each drive and returns only the ones student is eligible for
+    // Eligibility is based on:
+    //   1. Student's branch is in drive's eligible branches list
+    //   2. Student's CGPA meets the drive's minimum CGPA requirement
+    public ArrayList<Drive> getEligibleDrives(Student s, ArrayList<Drive> drives) {
 
-    // EligibilityService is used internally to check each drive
-    private EligibilityService eligibilityService;
+        // This list will store all drives the student is eligible for
+        ArrayList<Drive> eligibleDrives = new ArrayList<Drive>();
 
-    // ─── Constructor ──────────────────────────────────────────
+        System.out.println("\n=============================");
+        System.out.println("   DRIVE RECOMMENDATIONS     ");
+        System.out.println("=============================");
+        System.out.println("Student  : " + s.getName());
+        System.out.println("Branch   : " + s.getBranch());
+        System.out.println("CGPA     : " + s.getCgpa());
+        System.out.println("-----------------------------");
+        System.out.println("Checking " + drives.size() + " drive(s) for you...");
+        System.out.println("-----------------------------");
 
-    /**
-     * Constructor.
-     * Initializes the EligibilityService dependency.
-     */
-    public RecommendationService() {
-        this.eligibilityService = new EligibilityService();
-    }
-
-    // ─── Core Method ──────────────────────────────────────────
-
-    /**
-     * Returns a list of drives that the given student is eligible for.
-     *
-     * Steps:
-     * 1. Validate that student and drives list are not null.
-     * 2. Loop through all available drives.
-     * 3. Use EligibilityService to check each drive.
-     * 4. Collect and return only the eligible drives.
-     *
-     * @param student The Student object to check eligibility for
-     * @param drives  Full list of available placement drives
-     * @return ArrayList of Drive objects the student is eligible for,
-     *         or an empty list if none found
-     */
-    public ArrayList<Drive> getEligibleDrives(Student student, List<Drive> drives) {
-
-        // Result list to hold all eligible drives
-        ArrayList<Drive> eligibleDrives = new ArrayList<>();
-
-        // ── Step 1: Null safety check on student ──
-        if (student == null) {
-            System.out.println("[RecommendationService] WARNING: " +
-                               "Student object is null. Returning empty list.");
-            return eligibleDrives;
+        // Check if drive list is empty
+        if (drives.size() == 0) {
+            System.out.println("❌ No drives available at the moment.");
+            return eligibleDrives; // return empty list
         }
 
-        // ── Step 2: Null or empty check on drives list ──
-        if (drives == null || drives.isEmpty()) {
-            System.out.println("[RecommendationService] WARNING: " +
-                               "Drives list is null or empty. Returning empty list.");
-            return eligibleDrives;
-        }
+        // --- Core Logic ---
+        // Loop through every drive one by one
+        // Check if student is eligible for each drive
+        for (int i = 0; i < drives.size(); i++) {
+            Drive d = drives.get(i);
 
-        // ── Step 3: Loop through all drives and check eligibility ──
-        for (Drive drive : drives) {
+            // Flag variables to track each check
+            boolean branchOk = false;
+            boolean cgpaOk   = false;
 
-            // Skip null drive entries to avoid NullPointerException
-            if (drive == null) {
-                continue;
+            // Check 1 - Is student's branch in eligible branches?
+            if (d.isBranchEligible(s.getBranch())) {
+                branchOk = true;
             }
 
-            // Use EligibilityService to check if student qualifies for this drive
-            if (eligibilityService.isEligible(student, drive)) {
-                eligibleDrives.add(drive); // Student is eligible — add to result
+            // Check 2 - Does student's CGPA meet minimum requirement?
+            if (s.getCgpa() >= d.getMinCGPA()) {
+                cgpaOk = true;
+            }
+
+            // If both checks pass - student is eligible for this drive
+            if (branchOk && cgpaOk) {
+                eligibleDrives.add(d); // add to eligible list
             }
         }
 
-        // ── Step 4: Log summary ──
-        System.out.println("[RecommendationService] Student: " + student.getName()
-                + " | Total Drives: "    + drives.size()
-                + " | Eligible Drives: " + eligibleDrives.size());
+        // --- Display Results ---
+        if (eligibleDrives.size() == 0) {
 
-        return eligibleDrives; // Return all eligible drives
-    }
+            // No eligible drives found for this student
+            System.out.println("❌ Sorry! No eligible drives found for you.");
+            System.out.println("   Tip: Improve your CGPA to unlock more drives.");
 
-    // ─── Helper Methods ───────────────────────────────────────
+        } else {
 
-    /**
-     * Returns the count of drives a student is eligible for.
-     * Useful for displaying a count badge on the StudentDashboard.
-     *
-     * @param student The Student object
-     * @param drives  Full list of available placement drives
-     * @return Number of drives the student is eligible for
-     */
-    public int getEligibleDriveCount(Student student, List<Drive> drives) {
-        return getEligibleDrives(student, drives).size();
-    }
+            // Found some eligible drives - show them
+            System.out.println("🎉 " + eligibleDrives.size() + " eligible drive(s) found for you!\n");
 
-    /**
-     * Checks if a student is eligible for at least one drive.
-     * Useful for showing alerts or tips on the StudentDashboard.
-     *
-     * @param student The Student object
-     * @param drives  Full list of available placement drives
-     * @return true if eligible for at least one drive, false otherwise
-     */
-    public boolean hasAnyEligibleDrive(Student student, List<Drive> drives) {
-
-        // Null safety
-        if (student == null || drives == null || drives.isEmpty()) {
-            return false;
-        }
-
-        // Check each drive — return true as soon as one eligible drive is found
-        for (Drive drive : drives) {
-            if (drive != null && eligibilityService.isEligible(student, drive)) {
-                return true; // At least one eligible drive found
+            // Print each eligible drive with a number
+            for (int i = 0; i < eligibleDrives.size(); i++) {
+                System.out.println("Drive " + (i + 1) + ":");
+                eligibleDrives.get(i).displayInfo();
             }
         }
 
-        return false; // No eligible drives found
+        System.out.println("=============================");
+
+        // Return the list of eligible drives
+        return eligibleDrives;
     }
 
-    /**
-     * Returns a summary string of all eligible drives for a student.
-     * Useful for displaying a quick overview in the GUI or notifications.
-     *
-     * Example output:
-     * "Eligible Drives for Alice:
-     *  1. Google - Software Engineer (Min CGPA: 7.5)
-     *  2. TCS    - System Analyst   (Min CGPA: 6.0)"
-     *
-     * @param student The Student object
-     * @param drives  Full list of available placement drives
-     * @return Formatted string listing all eligible drives
-     */
-    public String getEligibleDrivesSummary(Student student, List<Drive> drives) {
+    // --- Get recommended drives with skill match ---
+    // This is an ADVANCED recommendation
+    // It not only checks branch and CGPA
+    // but also shows how many skills student already has for each drive
+    public void getRecommendationsWithSkillMatch(Student s, ArrayList<Drive> drives) {
 
-        // Null check
-        if (student == null) {
-            return "ERROR: Invalid student data.";
+        System.out.println("\n=============================");
+        System.out.println(" SMART DRIVE RECOMMENDATIONS ");
+        System.out.println("=============================");
+        System.out.println("Student : " + s.getName());
+        System.out.println("Branch  : " + s.getBranch());
+        System.out.println("CGPA    : " + s.getCgpa());
+        System.out.println("Skills  : " + s.getSkills());
+        System.out.println("-----------------------------");
+
+        // Check if drive list is empty
+        if (drives.size() == 0) {
+            System.out.println("❌ No drives available at the moment.");
+            return;
         }
 
-        // Get all eligible drives
-        ArrayList<Drive> eligibleDrives = getEligibleDrives(student, drives);
+        // Counter to track how many eligible drives we find
+        int count = 0;
 
-        // No eligible drives found
-        if (eligibleDrives.isEmpty()) {
-            return "No eligible drives found for " + student.getName() + ".\n"
-                 + "Tip: Improve your CGPA or update your branch details.";
+        // Loop through all drives and check eligibility
+        for (int i = 0; i < drives.size(); i++) {
+            Drive d = drives.get(i);
+
+            // Check branch and CGPA eligibility
+            boolean branchOk = d.isBranchEligible(s.getBranch());
+            boolean cgpaOk   = s.getCgpa() >= d.getMinCGPA();
+
+            // Only show drives where student is eligible
+            if (branchOk && cgpaOk) {
+                count++;
+
+                // Count how many required skills student already has
+                int matchedSkills  = 0;
+                int totalRequired  = d.getRequiredSkills().size();
+
+                for (int j = 0; j < d.getRequiredSkills().size(); j++) {
+                    if (s.hasSkill(d.getRequiredSkills().get(j))) {
+                        matchedSkills++; // student has this skill
+                    }
+                }
+
+                // Calculate skill match percentage
+                int skillPercent = 0;
+                if (totalRequired > 0) {
+                    skillPercent = (matchedSkills * 100) / totalRequired;
+                } else {
+                    skillPercent = 100; // no skills required means 100% match
+                }
+
+                // Print drive info with skill match
+                System.out.println("\n✅ Drive " + count + " : " + d.getCompanyName() + " - " + d.getRole());
+                System.out.println("   Drive ID      : " + d.getId());
+                System.out.println("   Min CGPA      : " + d.getMinCGPA());
+                System.out.println("   Skill Match   : " + matchedSkills + "/" + totalRequired + " (" + skillPercent + "%)");
+
+                // Show skill match bar using simple characters
+                System.out.print("   Match Level   : ");
+                if (skillPercent == 100) {
+                    System.out.println("[##########] Perfect Match! 🎯");
+                } else if (skillPercent >= 75) {
+                    System.out.println("[########  ] Strong Match 💪");
+                } else if (skillPercent >= 50) {
+                    System.out.println("[#####     ] Moderate Match 👍");
+                } else if (skillPercent >= 25) {
+                    System.out.println("[###       ] Weak Match ⚠️");
+                } else {
+                    System.out.println("[#         ] Very Weak Match ❌");
+                }
+            }
         }
 
-        // Build summary string
-        StringBuilder summary = new StringBuilder();
-        summary.append("Eligible Drives for ")
-               .append(student.getName())
-               .append(":\n");
-
-        // List each eligible drive with index
-        int index = 1;
-        for (Drive drive : eligibleDrives) {
-            summary.append(index)
-                   .append(". ")
-                   .append(drive.getCompanyName())
-                   .append(" - ")
-                   .append(drive.getRole())
-                   .append(" (Min CGPA: ")
-                   .append(drive.getMinCGPA())
-                   .append(")\n");
-            index++;
+        // If no eligible drives found
+        if (count == 0) {
+            System.out.println("❌ No eligible drives found for you right now.");
+            System.out.println("   Tip: Improve your CGPA to unlock more drives.");
+        } else {
+            System.out.println("\n-----------------------------");
+            System.out.println("Total Eligible Drives : " + count);
         }
 
-        return summary.toString().trim(); // Return clean summary string
+        System.out.println("=============================");
+    }
+
+    // --- Get top recommended drive ---
+    // This method returns the single BEST drive for the student
+    // Best drive = eligible drive where student has most skills matched
+    public Drive getTopRecommendation(Student s, ArrayList<Drive> drives) {
+
+        // This will hold the best drive we find
+        Drive bestDrive       = null;
+        int   bestSkillMatch  = -1; // start with -1 so any match is better
+
+        // Loop through all drives
+        for (int i = 0; i < drives.size(); i++) {
+            Drive d = drives.get(i);
+
+            // First check basic eligibility
+            boolean branchOk = d.isBranchEligible(s.getBranch());
+            boolean cgpaOk   = s.getCgpa() >= d.getMinCGPA();
+
+            if (branchOk && cgpaOk) {
+
+                // Count how many skills student has for this drive
+                int matchedSkills = 0;
+
+                for (int j = 0; j < d.getRequiredSkills().size(); j++) {
+                    if (s.hasSkill(d.getRequiredSkills().get(j))) {
+                        matchedSkills++;
+                    }
+                }
+
+                // If this drive has better skill match than previous best
+                // update bestDrive
+                if (matchedSkills > bestSkillMatch) {
+                    bestSkillMatch = matchedSkills;
+                    bestDrive      = d;
+                }
+            }
+        }
+
+        // Show result
+        if (bestDrive == null) {
+            System.out.println("❌ No eligible drive found for top recommendation.");
+        } else {
+            System.out.println("\n🏆 TOP RECOMMENDED DRIVE FOR YOU:");
+            bestDrive.displayInfo();
+        }
+
+        return bestDrive;
+    }
+
+    // --- Count total eligible drives ---
+    // Simple method to count how many drives a student can apply for
+    public int countEligibleDrives(Student s, ArrayList<Drive> drives) {
+
+        int count = 0;
+
+        for (int i = 0; i < drives.size(); i++) {
+            Drive d = drives.get(i);
+
+            // Check branch and CGPA
+            if (d.isBranchEligible(s.getBranch()) && s.getCgpa() >= d.getMinCGPA()) {
+                count++;
+            }
+        }
+
+        return count;
     }
 }

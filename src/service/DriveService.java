@@ -1,217 +1,184 @@
-// File: src/service/DriveService.java
-// Package: service
-// Description: Handles all Campus Drive related operations in the Smart Campus Placement System.
-
+// Package name - this file belongs to the service package
 package service;
 
-import model.Drive;
-
+// We need ArrayList to store all drives
 import java.util.ArrayList;
 
-/**
- * DriveService class.
- * Handles all operations related to campus placement drives:
- * - Adding a new drive
- * - Retrieving all available drives
- *
- * Uses simple ArrayList storage (no database).
- * Performs basic input validation before adding a drive.
- */
+// We need Drive class from model package
+import model.Drive;
+
+// DriveService class - handles all logic related to placement drives
+// like adding new drives and viewing existing drives
 public class DriveService {
 
-    // ─── Storage ──────────────────────────────────────────────
+    // This ArrayList works as our database to store all drives
+    private ArrayList<Drive> driveList;
 
-    // In-memory list to store all campus placement drives
-    private ArrayList<Drive> drives;
+    // This counter helps us give unique ID to each new drive
+    private int idCounter;
 
-    // ─── Constructor ──────────────────────────────────────────
-
-    /**
-     * Constructor.
-     * Initializes the drives storage list.
-     * Pre-loads sample drives for testing and demonstration purposes.
-     */
+    // --- Constructor ---
     public DriveService() {
-        this.drives = new ArrayList<>();
+        driveList = new ArrayList<Drive>();
+        idCounter = 1; // first drive will get ID = 1
 
-        // ── Pre-load sample drives for demonstration ──
+        // Adding some sample drives so we can test without adding every time
 
-        // Sample Drive 1: Google - Software Engineer
-        java.util.List<String> branches1 = new ArrayList<>();
-        branches1.add("CSE");
-        branches1.add("IT");
+        // Sample Drive 1 - Google
+        Drive d1 = new Drive(idCounter++, "Google", "Software Engineer", 8.0);
+        d1.addEligibleBranch("CSE");
+        d1.addEligibleBranch("IT");
+        d1.addRequiredSkill("Java");
+        d1.addRequiredSkill("Python");
+        driveList.add(d1);
 
-        java.util.List<String> skills1 = new ArrayList<>();
-        skills1.add("Java");
-        skills1.add("Data Structures");
-        skills1.add("Problem Solving");
+        // Sample Drive 2 - TCS
+        Drive d2 = new Drive(idCounter++, "TCS", "System Analyst", 6.5);
+        d2.addEligibleBranch("CSE");
+        d2.addEligibleBranch("IT");
+        d2.addEligibleBranch("ECE");
+        d2.addRequiredSkill("SQL");
+        d2.addRequiredSkill("Java");
+        driveList.add(d2);
 
-        drives.add(new Drive(
-                "DRV001",
-                "Google",
-                "Software Engineer",
-                7.5,
-                branches1,
-                skills1
-        ));
-
-        // Sample Drive 2: TCS - System Analyst
-        java.util.List<String> branches2 = new ArrayList<>();
-        branches2.add("CSE");
-        branches2.add("IT");
-        branches2.add("ECE");
-
-        java.util.List<String> skills2 = new ArrayList<>();
-        skills2.add("SQL");
-        skills2.add("Communication");
-        skills2.add("Python");
-
-        drives.add(new Drive(
-                "DRV002",
-                "TCS",
-                "System Analyst",
-                6.0,
-                branches2,
-                skills2
-        ));
-
-        // Sample Drive 3: Infosys - Java Developer
-        java.util.List<String> branches3 = new ArrayList<>();
-        branches3.add("CSE");
-        branches3.add("MCA");
-
-        java.util.List<String> skills3 = new ArrayList<>();
-        skills3.add("Java");
-        skills3.add("Spring Boot");
-        skills3.add("MySQL");
-
-        drives.add(new Drive(
-                "DRV003",
-                "Infosys",
-                "Java Developer",
-                6.5,
-                branches3,
-                skills3
-        ));
+        // Sample Drive 3 - Infosys
+        Drive d3 = new Drive(idCounter++, "Infosys", "Junior Developer", 7.0);
+        d3.addEligibleBranch("CSE");
+        d3.addEligibleBranch("IT");
+        d3.addEligibleBranch("MECH");
+        d3.addRequiredSkill("Python");
+        d3.addRequiredSkill("HTML");
+        driveList.add(d3);
     }
 
-    // ─── Core Methods ─────────────────────────────────────────
+    // --- Add a new drive ---
+    // This method takes drive details and adds them to the list
+    // Company calls this method to post a new placement drive
+    public void addDrive(String companyName, String role, double minCGPA,
+                         ArrayList<String> branches, ArrayList<String> skills) {
 
-    /**
-     * Adds a new placement drive to the system.
-     *
-     * Steps:
-     * 1. Validate that all required fields are not null or empty.
-     * 2. Check that minCGPA is within a valid range (0.0 to 10.0).
-     * 3. Ensure eligibleBranches and requiredSkills are not empty.
-     * 4. Check for duplicate drive ID.
-     * 5. Add the drive to the list if all validations pass.
-     *
-     * @param drive Fully initialized Drive object to be added
-     * @return "SUCCESS" if added successfully, or an error message string if failed
-     */
-    public String addDrive(Drive drive) {
+        // Create a new Drive object with given details
+        Drive newDrive = new Drive(idCounter, companyName, role, minCGPA);
+        idCounter++; // increase counter so next drive gets a different ID
 
-        // ── Step 1: Null check on drive object ──
-        if (drive == null) {
-            return "ERROR: Drive data is invalid.";
+        // Add all eligible branches to the drive
+        for (int i = 0; i < branches.size(); i++) {
+            newDrive.addEligibleBranch(branches.get(i));
         }
 
-        // ── Step 2: Validate drive ID ──
-        if (drive.getId() == null || drive.getId().trim().isEmpty()) {
-            return "ERROR: Drive ID cannot be empty.";
+        // Add all required skills to the drive
+        for (int i = 0; i < skills.size(); i++) {
+            newDrive.addRequiredSkill(skills.get(i));
         }
 
-        // ── Step 3: Validate company name ──
-        if (drive.getCompanyName() == null || drive.getCompanyName().trim().isEmpty()) {
-            return "ERROR: Company name cannot be empty.";
-        }
+        // Finally add the drive to our list
+        driveList.add(newDrive);
 
-        // ── Step 4: Validate role ──
-        if (drive.getRole() == null || drive.getRole().trim().isEmpty()) {
-            return "ERROR: Job role cannot be empty.";
-        }
-
-        // ── Step 5: Validate minCGPA range ──
-        if (drive.getMinCGPA() < 0.0 || drive.getMinCGPA() > 10.0) {
-            return "ERROR: Minimum CGPA must be between 0.0 and 10.0.";
-        }
-
-        // ── Step 6: Validate eligible branches list ──
-        if (drive.getEligibleBranches() == null || drive.getEligibleBranches().isEmpty()) {
-            return "ERROR: At least one eligible branch must be specified.";
-        }
-
-        // ── Step 7: Validate required skills list ──
-        if (drive.getRequiredSkills() == null || drive.getRequiredSkills().isEmpty()) {
-            return "ERROR: At least one required skill must be specified.";
-        }
-
-        // ── Step 8: Check for duplicate drive ID ──
-        for (Drive d : drives) {
-            if (d.getId().equalsIgnoreCase(drive.getId().trim())) {
-                return "ERROR: A drive with ID '" + drive.getId() + "' already exists.";
-            }
-        }
-
-        // ── Step 9: All validations passed — add the drive ──
-        drives.add(drive);
-        return "SUCCESS"; // Drive added successfully
+        System.out.println("✅ Drive added successfully! Drive ID is: " + newDrive.getId());
     }
 
-    /**
-     * Retrieves all campus placement drives stored in the system.
-     *
-     * @return ArrayList of all Drive objects (may be empty if none added yet)
-     */
+    // --- View all drives ---
+    // This method prints all available placement drives on screen
+    public void viewDrives() {
+
+        // Check if there are any drives at all
+        if (driveList.size() == 0) {
+            System.out.println("No drives available at the moment.");
+            return;
+        }
+
+        System.out.println("\n===== ALL PLACEMENT DRIVES =====");
+
+        // Loop through list and print each drive's info
+        for (int i = 0; i < driveList.size(); i++) {
+            driveList.get(i).displayInfo();
+        }
+    }
+
+    // --- Get all drives ---
+    // Returns the full ArrayList of drives
+    // Used by other service classes
     public ArrayList<Drive> getAllDrives() {
-        return drives;
+        return driveList;
     }
 
-    // ─── Helper Methods ───────────────────────────────────────
+    // --- Find a drive by its ID ---
+    // Returns the Drive object if found
+    // Returns null if no drive has that ID
+    public Drive getDriveById(int id) {
 
-    /**
-     * Finds and returns a Drive by its unique ID.
-     * Useful for application and eligibility checks.
-     *
-     * @param driveId The unique ID of the drive to find
-     * @return The matching Drive object, or null if not found
-     */
-    public Drive getDriveById(String driveId) {
-
-        // Basic null/empty check
-        if (driveId == null || driveId.trim().isEmpty()) {
-            return null;
-        }
-
-        // Search for the drive by ID
-        for (Drive d : drives) {
-            if (d.getId().equalsIgnoreCase(driveId.trim())) {
-                return d; // Drive found — return it
+        for (int i = 0; i < driveList.size(); i++) {
+            if (driveList.get(i).getId() == id) {
+                return driveList.get(i);
             }
         }
 
-        return null; // No matching drive found
+        // Drive with given ID not found
+        System.out.println("❌ Drive not found with ID: " + id);
+        return null;
     }
 
-    /**
-     * Returns the total number of drives currently in the system.
-     * Useful for generating new unique drive IDs.
-     *
-     * @return Total count of drives
-     */
-    public int getDriveCount() {
-        return drives.size();
+    // --- Get drives by company name ---
+    // Returns list of all drives posted by a specific company
+    public ArrayList<Drive> getDrivesByCompany(String companyName) {
+
+        // This list will hold all drives of that company
+        ArrayList<Drive> result = new ArrayList<Drive>();
+
+        for (int i = 0; i < driveList.size(); i++) {
+            if (driveList.get(i).getCompanyName().equalsIgnoreCase(companyName)) {
+                result.add(driveList.get(i));
+            }
+        }
+
+        return result;
     }
 
-    /**
-     * Generates a new unique Drive ID based on current drive count.
-     * Format: DRV001, DRV002, DRV003, ...
-     *
-     * @return A new unique drive ID string
-     */
-    public String generateDriveId() {
-        int next = drives.size() + 1;           // Next number in sequence
-        return String.format("DRV%03d", next);  // Format as DRV001, DRV002, etc.
+    // --- Get eligible drives for a student ---
+    // This is a SMART FEATURE
+    // It checks which drives a student is eligible for
+    // based on their branch and CGPA
+    public ArrayList<Drive> getEligibleDrives(String branch, double cgpa) {
+
+        // This list will hold all drives the student can apply for
+        ArrayList<Drive> eligibleDrives = new ArrayList<Drive>();
+
+        for (int i = 0; i < driveList.size(); i++) {
+            Drive d = driveList.get(i);
+
+            // Check if student's branch is eligible AND cgpa meets minimum
+            if (d.isBranchEligible(branch) && cgpa >= d.getMinCGPA()) {
+                eligibleDrives.add(d);
+            }
+        }
+
+        return eligibleDrives;
+    }
+
+    // --- Display eligible drives for a student ---
+    // Prints all drives a student can apply for
+    public void displayEligibleDrives(String branch, double cgpa) {
+
+        ArrayList<Drive> eligibleDrives = getEligibleDrives(branch, cgpa);
+
+        if (eligibleDrives.size() == 0) {
+            System.out.println("❌ No eligible drives found for your branch and CGPA.");
+            return;
+        }
+
+        System.out.println("\n===== ELIGIBLE DRIVES FOR YOU =====");
+        System.out.println("Branch: " + branch + " | CGPA: " + cgpa);
+        System.out.println("------------------------------------");
+
+        // Loop through eligible drives and print each one
+        for (int i = 0; i < eligibleDrives.size(); i++) {
+            eligibleDrives.get(i).displayInfo();
+        }
+    }
+
+    // --- Get total number of drives ---
+    // Simple method to count how many drives are posted
+    public int getTotalDrives() {
+        return driveList.size();
     }
 }
